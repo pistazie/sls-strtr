@@ -1,0 +1,65 @@
+service: sls-strtr
+
+custom:
+  github-repo:
+    Owner: pistazie
+    Repo: sls-strtr
+    Branch: master
+    OAuthToken: ${ssm:/aws/reference/secretsmanager/sls-github-token~true}
+
+  frontend-s3-bucket-prefix: sls-strtr
+  assets:
+    auto: true
+    verbose: true
+    targets:
+      - bucket:
+          Ref: FrontendS3Bucket
+        files:
+          - source: ./frontend/dist
+            globs: '**/*.html'
+          - source: ./frontend/dist
+            globs: '**/*\.!(html)'
+            headers:
+              CacheControl: max-age=31104000
+  output:
+    handler: sls-and-infra/slsOutputsHandler.handler # Same syntax as you already know
+
+  cloudfrontInvalidate:
+    distributionIdKey: 'FrontendCDNid'
+    items:
+      - '/index.html'
+      - '/*'
+plugins:
+  - serverless-s3-deploy
+  - serverless-stack-output
+  - serverless-cloudfront-invalidate
+
+provider:
+  name: aws
+  runtime: java8
+  stage: ${opt:stage, 'dev'}
+  region: eu-central-1
+
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "s3:*"
+      Resource: ["arn:aws:s3:::*" ]
+
+  environment:
+      variable1: value1
+
+package:
+  artifact: backend/target/app-1-SNAPSHOT.jar
+
+functions:
+  hello:
+    handler: rocks.pistazie.Handler
+    events:
+       - http:
+           path: hello/world
+           method: get
+
+resources:
+  - ${file(./sls-and-infra/CICD.yml)}
+  - ${file(./sls-and-infra/frontend.yml)}

@@ -39,6 +39,7 @@ example:
 **6. Build the Backend and Frontend**
 
 `mvn -f backend clean install`<br>
+`npm install --prefix frontend`
 `npm run build --prefix frontend`
 
 **7. Deploy the application**<br>
