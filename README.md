@@ -1,9 +1,7 @@
-An opinionated serverless fullstack starter including multiple stages and a CI/CD pipeline.
-
-Start coding a fully fledged fullstack Serverless application with CI/CD in 15min!
+Start coding a fully fledged fullstack Serverless application with CI/CD in no time.
 
 ## Features / Components:
-* [https://serverless.com](The Serverless Framework)
+* [The Serverless Framework](https://serverless.com)
 * AWS
 * Backend
    * Kotlin + Maven
@@ -24,56 +22,46 @@ Start coding a fully fledged fullstack Serverless application with CI/CD in 15mi
 
 ## Getting started
 
-### Preconditions
-* AWS CLI is locally installed with default credentials for an AWS account
-* Node / NPM
-* Maven
+Deploying takes ~15min and requires very few steps. 
+Just follow the [Startup Steps](docs/startup).
 
-### Steps: 
-Fork
-locally git clone
-npm install
+## Development
 
-Github secret and config
-AWS config (region, app name)
+#### CI/CD Pipeline
 
-mvn clean install
-npm run build
-sls deploy --stage staging
-sls deploy --stage dev
-Done!
+The pipeline will start with every commit pushed to GitHub. The pipeline consists of:
+* Fetch code from GitHub
+* Build and deploy to staging
+  * Build and test Backend using Maven
+  * Build and test Frontend using Webpack
+  * Deploy to `stageing` stage using the Serverless framework
+* Wait for manual approval
+* Deploy artifacts to `prod` stage using the Serverless framework
+
+To make changes in the pipeline you look at `CICD.yml`. If you want to change this build and deploy 
+flows look into `aws_buildspec_build_test_deploy_staging.yml` and `aws_buildspec_deploy_prod.yml`. 
+Changes to the pipeline are provisioned when you deploy the `staging` stage usung the Serverless framework (just commit you changes and the pipeline will deploy them)
+
+#### Backend development
+
+The Backend is built using Maven to build a JAR which the Serverless framework 
+deploys to AWS Lambda
+
+* You can locally develop the Kotlin application
+* If you want to deploy your code to a `dev` stage:
+    * Build using `mvn -f backend clean install`
+    * Deploy using `sls deploy --stage dev` (the first ever deployment will be slow due to CloudFront distribution provisioning)
+
+* Tests will automatically run in the Pipeline   
    
-### Serverless + CI/CD
-* sls deploy and creates seperate CF stack with all resources
-* only staging has CI/CD pipeline  and it carries it for prod too
-* buildspec files define the building steps
-* Writes to publicOutputs.js
-* Staging stage (wass the name?) runs all tests and deploys to staging (you can add here E2E)
-* manual release for prod
-* Prod deployes previously built front and backend artifacts to Prod stage
-* Get U R prod url from CodeBuild. it won't change afterwards. 
-   
-### Backend
-* maven runs tests.. locally and in CI/CD
-        
-### Frontend
- useful command and work flows:
-   local developemnt:
-        * cd frontend && npm run dev (set the publicOutpts of this to working dev stage)
-        * ... npm run dev (set the publicOutpts of this to localyrunnign thing?)
-   To know
-        * publicOutputs.js
-        * S3 + CF + invalidation
-        * Testing (run locally and where the CICD runs them)
-        
-             
+#### Frontend development   
 
-## Wishlist / Backlog
-* Mocito Kotlin in backend testing
-* LocalStack integration for testing against mocked AWS services
-* Custom Cloudfront Domain with SSL        
-* X-Ray integration
-* Add Cloudwatch logs to outputs
-* Add Cloudwatch monitoring link and/or dashboard
+The Frontend is build by Webpack, test run by Jest and the artifacts are deploy to an S3 bucket using 
+the Serverless Framework. They are then served using an AWS Cloudfront CDN.
+
+* `npm run build --prefix frontend` to build the frontend
+* `npm run start --prefix frontend` to interactively locally develop the Frontend
+* `npm run test --prefix frontend` to run the tests
+   
 
 

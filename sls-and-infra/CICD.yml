@@ -1,0 +1,200 @@
+Conditions:
+  IsStaging:
+    Fn::Equals:
+      - ${opt:stage}
+      - staging
+Resources:
+  CodePipelineServiceRole:
+    Condition: IsStaging
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codepipeline.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: main
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Resource:
+                  - !GetAtt ArtifactStore.Arn
+                  - arn:aws:s3:::*/*
+                Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:GetBucketVersioning
+              - Resource: "*"
+                Effect: Allow
+                Action:
+                  - ecs:DescribeServices
+                  - ecs:DescribeTaskDefinition
+                  - ecs:DescribeTasks
+                  - ecs:ListTasks
+                  - ecs:RegisterTaskDefinition
+                  - ecs:UpdateService
+                  - codebuild:StartBuild
+                  - codebuild:BatchGetBuilds
+                  - iam:PassRole
+  ArtifactStore:
+    Condition: IsStaging
+    Type: AWS::S3::Bucket
+  CICDPipeline:
+    Condition: IsStaging
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      ArtifactStore:
+        Type: S3
+        Location: !Ref ArtifactStore
+      RestartExecutionOnUpdate: true
+      RoleArn: !GetAtt CodePipelineServiceRole.Arn
+      Stages:
+        - Name: FetchSourceCode
+          Actions:
+            - Name: GitHub
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Version: 1
+                Provider: GitHub
+              Configuration:
+                Owner: ${self:custom.github-repo.Owner}
+                Branch: ${self:custom.github-repo.Branch}
+                Repo: ${self:custom.github-repo.Repo}
+                OAuthToken: ${self:custom.github-repo.OAuthToken.github-token}
+              OutputArtifacts:
+                - Name: SourceCode
+              RunOrder: 1
+        - Name: BuildTest-DeployStaging
+          Actions:
+            - Name: Build
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: 1
+                Provider: CodeBuild
+              Configuration:
+                ProjectName: !Ref CodeBuildProjectStaging
+              InputArtifacts:
+                - Name: SourceCode
+              OutputArtifacts:
+                - Name: packedapp
+              RunOrder: 1
+        - Name: ManualApproval
+          Actions:
+            - Name: Approve
+              ActionTypeId:
+                Category: Approval
+                Owner: AWS
+                Version: 1
+                Provider: Manual
+              RunOrder: 1
+        - Name: DeployProd
+          Actions:
+            - Name: Build
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: 1
+                Provider: CodeBuild
+              Configuration:
+                ProjectName: !Ref CodeBuildProjectProd
+              InputArtifacts:
+                - Name: packedapp
+              RunOrder: 1
+
+  CodeBuildServiceRole:
+    Condition: IsStaging
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AdministratorAccess"
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Resource:
+                  - !GetAtt ArtifactStore.Arn
+                  - arn:aws:s3:::*/*
+                Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:GetBucketVersioning
+              - Resource: "*"
+                Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - ecr:GetAuthorizationToken
+
+  CodeBuildProjectStaging:
+    Condition: IsStaging
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: sls-and-infra/aws_buildspec_build_test_deploy_staging.yml
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:2.0
+        Type: LINUX_CONTAINER
+      Name:
+        Fn::Join:
+          - ""
+          - - !Ref AWS::StackName
+            - Staging
+      ServiceRole: !Ref CodeBuildServiceRole
+  CodeBuildProjectProd:
+    Condition: IsStaging
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: sls-and-infra/aws_buildspec_deploy_prod.yml
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:2.0
+        Type: LINUX_CONTAINER
+      Name:
+        Fn::Join:
+          - ""
+          - - !Ref AWS::StackName
+            - Prod
+
+      ServiceRole: !Ref CodeBuildServiceRole
+
+Outputs:
+  CICDPipeline:
+    Condition: IsStaging
+    Value:
+      Fn::Join:
+        - ""
+        - - 'https://'
+          - Ref: AWS::Region
+          - '.console.aws.amazon.com/codesuite/codepipeline/pipelines/'
+          - Ref: CICDPipeline
+          - '/view'
+
+

@@ -1,0 +1,14 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 10
+  pre_build:
+    commands:
+      - npm install
+      - PATH=$(npm bin):$PATH
+  post_build:
+    commands:
+      # deploy previously packed app to prod stage
+      - serverless deploy --package package --stage prod

@@ -1,0 +1,25 @@
+{
+  "name": "sls-strtr",
+  "version": "1.0.0",
+  "description": "An opinionated serverless fullstack starter including multiple stages and a CI/CD pipeline",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pistazie/sls-strtr.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pistazie/sls-strtr/issues"
+  },
+  "homepage": "https://github.com/pistazie/sls-strtr#readme",
+  "dependencies": {
+    "serverless": "^1.48.4",
+    "serverless-cloudfront-invalidate": "^1.3.0",
+    "serverless-s3-deploy": "^0.8.2",
+    "serverless-stack-output": "^0.2.3"
+  }
+}

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>SLS Starter!</title>
+    <script type="text/javascript" src="publicOutputs.js"></script>
+</head>
+<body>
+<div id="app">
+
+    <h1>Welcome to the frontend of A Serverless Full Starter</h1>
+
+    <ul>
+        <li><strong>Webpack build time: </strong> <%= new Date().toString() %></li>
+        <li><strong>Git commit hash: </strong> <%= htmlWebpackPlugin.options.gitHash %></li>
+    </ul>
+
+    <p>Open the console and evaluate <span style="font-family:monospace">publicOutputs</span> to get the public endpoints of the serverless backend</p>
+
+</div>
+</body>
+</html>

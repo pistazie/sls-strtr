@@ -1,0 +1,20 @@
+*.class
+target
+/bin/
+/.settings/
+.project
+.classpath
+node_modules/
+
+# Intelli J
+.idea
+.iml
+
+# Package Files
+*.jar
+*.war
+*.ear
+package/*
+
+# Serverless temp directories
+.serverless

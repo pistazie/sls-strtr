@@ -1,0 +1,38 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 10
+      java: openjdk11
+  pre_build:
+    commands:
+      - npm install
+      - PATH=$(npm bin):$PATH
+      - cd frontend
+      - npm install
+      - PATH=$(npm bin):$PATH
+      - cd ..
+  build:
+    commands:
+      # maven build - backend
+      - cd $CODEBUILD_SRC_DIR/backend
+      -  mvn clean install --no-transfer-progress
+      # webpack build - frontend
+      - cd $CODEBUILD_SRC_DIR/frontend
+      - npm run test
+      - npm run build
+
+      - cd $CODEBUILD_SRC_DIR
+      # prepare a deployment ready app for the prod stage
+      - serverless package  --stage prod --package package
+      # pack and deploy a staging stage
+      - serverless deploy   --stage staging
+artifacts:
+      files:
+        - sls-and-infra/**/*
+        - serverless.yml
+        - package.json
+        - backend/target/**/*
+        - package/**/*
+        - frontend/dist/**/*

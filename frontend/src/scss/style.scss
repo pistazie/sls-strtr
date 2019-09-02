@@ -1,0 +1,14 @@
+@import '../../node_modules/normalize.css';
+
+$colText : rgba(50,50,50,1);
+
+html,body {
+    color: $colText;
+    max-width:600px;
+    margin:auto;
+    font-family:sans-serif;
+    line-height:2em;
+}
+h1 {
+    font-size:1.4rem;
+}

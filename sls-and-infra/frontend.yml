@@ -1,0 +1,69 @@
+Resources:
+  FrontendS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+  FrontendS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: FrontendS3Bucket
+      PolicyDocument:
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: "*"
+            Action:
+              - s3:GetObject
+            Resource:
+              Fn::Join: [
+                "", [
+                "arn:aws:s3:::",
+                {
+                  "Ref": "FrontendS3Bucket"
+                },
+                "/*"
+              ]
+              ]
+
+  CDN:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        PriceClass: PriceClass_100
+        HttpVersion: http2
+        DefaultCacheBehavior:
+          TargetOriginId: S3Bucket
+          DefaultTTL: 31536000
+          ViewerProtocolPolicy: redirect-to-https
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+        Origins:
+           - Id: S3Bucket
+             DomainName:
+               Fn::GetAtt: [FrontendS3Bucket, DomainName]
+             S3OriginConfig:
+               OriginAccessIdentity: ""
+
+Outputs:
+  FrontendS3Bucket:
+    Value:
+      Ref: FrontendS3Bucket
+  FrontendCDNid:
+    Value:
+      Ref: CDN
+  FrontendUrl:
+    Value:
+      Fn::Join:
+        - ""
+        - - 'https://'
+          - Fn::GetAtt:
+               - CDN
+               - DomainName
